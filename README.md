@@ -276,6 +276,53 @@ The `nginx.conf` file provides:
 - **Gzip Compression:** Reduces file transfer size for faster loading
 - **Static Asset Caching:** Caches JS, CSS, and images for 1 year
 - **Security Headers:** Adds protection against common web vulnerabilities
+- **Health Check Endpoint:** Provides a `/health` endpoint for container health monitoring
+
+### Health Check
+
+The Nginx configuration includes a `/health` endpoint for container health monitoring and load balancer probes.
+
+```bash
+# Test the health endpoint
+curl http://localhost:8080/health
+# Returns: healthy
+```
+
+This endpoint:
+- Returns `200 OK` with body `healthy`
+- Has access logging disabled to prevent log spam
+- Can be used with Docker health checks or Kubernetes probes
+
+**Docker Compose with health check:**
+```yaml
+services:
+  frontend:
+    build: .
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+```
+
+**Kubernetes liveness/readiness probe:**
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
 
 ### Environment Variables
 
