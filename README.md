@@ -229,6 +229,88 @@ The build output will be in the `dist/` directory, ready for deployment.
 
 ---
 
+## 🐳 Docker Deployment
+
+The project includes Docker configuration for production deployment using a multi-stage build.
+
+### Files Overview
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Multi-stage build that compiles the app and serves it with Nginx |
+| `nginx.conf` | Nginx configuration with SPA routing, compression, and caching |
+| `.dockerignore` | Excludes unnecessary files from the Docker build context |
+
+### Building the Docker Image
+
+```bash
+docker build -t knowledge-repo-client .
+```
+
+### Running the Container
+
+```bash
+# Run on port 8080
+docker run -d -p 8080:80 knowledge-repo-client
+
+# Or run on a different port
+docker run -d -p 3000:80 knowledge-repo-client
+```
+
+The application will be available at `http://localhost:8080` (or your chosen port).
+
+### How It Works
+
+The Dockerfile uses a **multi-stage build** for optimal image size:
+
+1. **Stage 1 (Build):** Uses `node:20-alpine` to install dependencies and run `npm run build`
+2. **Stage 2 (Production):** Uses `nginx:alpine` to serve the compiled static files
+
+This approach results in a final image of ~25MB instead of ~1.2GB (if Node.js was included).
+
+### Nginx Configuration
+
+The `nginx.conf` file provides:
+
+- **SPA Routing:** Redirects all routes to `index.html` for React Router compatibility
+- **Gzip Compression:** Reduces file transfer size for faster loading
+- **Static Asset Caching:** Caches JS, CSS, and images for 1 year
+- **Security Headers:** Adds protection against common web vulnerabilities
+
+### Environment Variables
+
+For production, you may need to configure the API base URL. Create a `.env.production` file before building:
+
+```env
+VITE_API_BASE=https://your-production-api.com/api
+```
+
+Then rebuild the Docker image to include the new configuration.
+
+### Docker Compose (Optional)
+
+If you have a backend server, you can use Docker Compose to run both services together. Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  frontend:
+    build: .
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+  
+  backend:
+    build: ../server
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=your_database_url
+```
+
+---
+
 ## 🐛 Troubleshooting
 
 ### Common Issues
