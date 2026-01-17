@@ -18,14 +18,28 @@ RUN npm run build
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine AS production
 
-# Copy custom nginx configuration (optional)
+# Create non-root user
+RUN addgroup --gid 1000 appgroup && \
+    adduser --uid 1000 --ingroup appgroup --disabled-password --gecos "" appuser
+
+# Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copy built assets from build stage with correct ownership
+COPY --from=build --chown=appuser:appgroup /app/dist /usr/share/nginx/html
 
-# Expose port 80
-EXPOSE 80
+# Adjust nginx to run as non-root
+RUN touch /var/run/nginx.pid && \
+    chown -R appuser:appgroup /var/run/nginx.pid && \
+    chown -R appuser:appgroup /var/cache/nginx && \
+    chown -R appuser:appgroup /var/log/nginx && \
+    chown -R appuser:appgroup /etc/nginx/conf.d
+
+# Switch to non-root user
+USER appuser
+
+# Expose port 8080 (non-root user compatible)
+EXPOSE 8080
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
